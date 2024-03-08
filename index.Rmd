@@ -1,0 +1,465 @@
+<br> 
+<center><img src="https://i.imgur.com/AbCCpQO.png" width="700"></center>
+
+
+_____
+
+<a id='TOC'></a>
+
+
+
+# Tabular data - Bivariate relationships II: Categorical-Numerical
+
+___________
+
+
+Let me use the [data about crime](https://data.seattle.gov/Public-Safety/Crime-Data/4fs7-3vj5) from the Seattle Open Data portal:
+
+```{r collect, eval=TRUE}
+rm(list = ls())
+
+# collecting the data
+link="https://github.com/DACSS-Visual/tabular_bivar_catcat/raw/main/data/crime.RData"
+load(file = url(link))
+```
+
+
+The data available are:
+
+```{r names, eval=TRUE}
+# variables in the data:
+names(crime)
+```
+The _data types_ recognised in R are:
+
+```{r, eval=TRUE, warning=FALSE, message=FALSE}
+str(crime,width = 70,strict.width='cut')
+```
+
+The data is from several years:
+
+```{r}
+summary(crime$year)
+```
+
+
+Let's keep some years:
+
+```{r}
+yearsSelected=2011:2015
+
+subCrime=crime[crime$year%in%yearsSelected,]
+
+#let's keep complete data
+
+subCrime=subCrime[complete.cases(subCrime),]
+
+```
+
+
+
+The goal in this session is to find a visualization to represent the _behavior of a numerical variable_ in _each level_ of a categorical variable. Let's choose two of these kinds:
+
+```{r}
+tapply(subCrime$DaysToReport,subCrime$Precinct, summary)
+```
+Two familiar plots could be:
+
+
+```{r boxNumCat1, eval=TRUE}
+library(ggplot2)
+base1=ggplot(data=subCrime,
+            aes(y=DaysToReport))
+
+base1 + geom_boxplot(aes(x=Precinct))
+```
+
+```{r boxNumCat1, eval=TRUE}
+library(ggplot2)
+base2=ggplot(data=subCrime,
+            aes(x=DaysToReport))
+base2 + geom_histogram(aes(fill=Precinct))
+```
+```{r}
+base2 + geom_histogram() + facet_grid(.~Precinct)
+```
+
+
+
+Most cases are reported in a day. Let me explore other lengths using **ggarrange**:
+
+
+```{r weeksandabove, eval=TRUE}
+# several boxplots, from week and above
+
+library(ggpubr)
+
+base7=ggplot(data=subCrime[subCrime$DaysToReport>=7,],
+            aes(x=Precinct,y=DaysToReport)) 
+box7=base7 + geom_boxplot() + labs(title = "week and above")
+
+base30=ggplot(data=subCrime[subCrime$DaysToReport>=30,],
+            aes(x=Precinct,y=DaysToReport))
+box30=base30 + geom_boxplot() + labs(title = "month and above")
+
+base180=ggplot(data=subCrime[subCrime$DaysToReport>=180,],
+            aes(x=Precinct,y=DaysToReport)) 
+box180=base180 + geom_boxplot() + labs(title = "half year and above")
+
+
+base365=ggplot(data=subCrime[subCrime$DaysToReport>=365,],
+            aes(x=Precinct,y=DaysToReport)) 
+box365=base365 + geom_boxplot() + labs(title = "year and above")
+
+
+
+#all in one:
+ggarrange(box7,box30,box180,box365)
+
+```
+
+Let's build our visual from the crimes that take more than ONE year or longer to report.
+
+
+```{r, eval=TRUE}
+crimePrecinct=subCrime[subCrime$DaysToReport>365,]
+crimePrecinct$yearsToReport=crimePrecinct$DaysToReport/365
+```
+
+Let's redo the boxplot and histograms:
+
+```{r, eval=TRUE}
+library(ggplot2)
+baseBox=ggplot(data=crimePrecinct,
+            aes(y=yearsToReport))
+
+baseBox + geom_boxplot(aes(x=Precinct)) + coord_flip()
+```
+
+```{r boxNumCat1, eval=TRUE}
+library(ggplot2)
+baseHist=ggplot(data=crimePrecinct,
+            aes(x=yearsToReport))
+
+baseHist + geom_histogram() + facet_grid(Precinct~.) 
+```
+
+We can see better results in the previous plots, especially in the boxplot:
+
+- Clearer positional values (quartiles)
+- Less, and more relevant, outliers.
+
+The histograms does not add much insight. 
+
+
+Another common visual is the mean-error plot, which shows the mean of the numeric variable including a confidence interval. Let me first recall the two variables I have been using:
+
+```{r, eval=TRUE}
+crimePrecinct[,c('Precinct', 'yearsToReport')] %>%head(20)
+```
+
+The  plan is to show the mean per precinct:
+
+```{r, eval=TRUE}
+baseMEANs=ggplot(crimePrecinct, aes(x=Precinct,
+                             y=yearsToReport)) 
+pointMEANS=baseMEANs + geom_point(stat="summary") 
+pointMEANS
+```
+
+We can add now the error bar:
+```{r, eval=TRUE}
+pointMEANS=pointMEANS + geom_errorbar(stat="summary") 
+pointMEANS
+```
+
+Error bars have a **huge problem**, they give you the illusion of symmetry. So, I recommend you include the data in the plot:
+
+```{r, eval=TRUE}
+baseMEANs= ggplot(crimePrecinct, aes(x=Precinct,
+                      y=yearsToReport)) 
+jitterMEANs= baseMEANs + geom_jitter(colour="blue",
+                             alpha=0.2 #transparency
+                             )
+jitterMEANs=jitterMEANs + geom_point(stat="summary") +
+             geom_errorbar(stat="summary",width=.2)
+jitterMEANs 
+    
+```
+
+
+We could try the violin plot?
+
+```{r}
+
+vio=baseBox+geom_violin(aes(x=Precinct), fill="magenta",trim = F)
+vio + coord_flip() 
+```
+```{r}
+tapply(crimePrecinct$yearsToReport,crimePrecinct$Precinct, summary)
+```
+```{r}
+vio2= vio + coord_flip() + 
+    scale_y_continuous(breaks = c(1,2,8)) + 
+    theme(panel.grid.minor = element_blank())
+
+vio2
+```
+```{r}
+tapply(crimePrecinct$yearsToReport,
+       crimePrecinct$Precinct,
+       summary)$EAST[c(3,6)]%>%
+                            round(3) ->eastMdMx
+
+eastMdMx%>%as.list()%>%as.data.frame() ->eastMdMx_ValuesInDF
+names(eastMdMx_ValuesInDF)=c('median','max')
+eastMdMx_ValuesInDF
+
+```
+```{r}
+trunc(eastMdMx_ValuesInDF)
+```
+```{r}
+trunc(12*mod(eastMdMx_ValuesInDF,1))
+```
+```{r}
+text_eastMdMx_ValuesInDF=paste0(trunc(eastMdMx_ValuesInDF),"y_",
+                               trunc(12*mod(eastMdMx_ValuesInDF,1)),'m')
+text_eastMdMx_ValuesInDF
+```
+```{r}
+eastMdMx_ValuesInDF[1,]=text_eastMdMx_ValuesInDF
+eastMdMx_ValuesInDF
+```
+
+
+```{r}
+eastT=tibble(x=1.2,y=6,tb=list(eastMdMx_ValuesInDF))
+
+library(ggpmisc)
+vio2 + geom_table(data=eastT,
+             aes(x = x, y = y, label = tb))
+```
+```{r}
+tapply(crimePrecinct$yearsToReport,
+       crimePrecinct$Precinct,
+       summary)$NORTH[c(3,6)]%>%
+            round(3) %>%
+               as.list()%>%
+                 as.data.frame() ->northMdMx_ValuesInDF
+names(northMdMx_ValuesInDF)=c('median','max')
+text_northMdMx_ValuesInDF=paste0(trunc(northMdMx_ValuesInDF),"y_",
+                               trunc(12*mod(northMdMx_ValuesInDF,1)),'m')
+northMdMx_ValuesInDF[1,]=text_northMdMx_ValuesInDF
+
+####
+
+tapply(crimePrecinct$yearsToReport,
+       crimePrecinct$Precinct,
+       summary)$SOUTH[c(3,6)]%>%
+            round(3) %>%
+               as.list()%>%
+                 as.data.frame() ->southMdMx_ValuesInDF
+names(southMdMx_ValuesInDF)=c('median','max')
+text_southMdMx_ValuesInDF=paste0(trunc(southMdMx_ValuesInDF),"y_",
+                               trunc(12*mod(southMdMx_ValuesInDF,1)),'m')
+southMdMx_ValuesInDF[1,]=text_southMdMx_ValuesInDF
+
+####
+
+tapply(crimePrecinct$yearsToReport,
+       crimePrecinct$Precinct,
+       summary)$SOUTHWEST[c(3,6)]%>%
+            round(3) %>%
+               as.list()%>%
+                 as.data.frame() ->southwestMdMx_ValuesInDF
+names(southwestMdMx_ValuesInDF)=c('median','max')
+text_southwestMdMx_ValuesInDF=paste0(trunc(southwestMdMx_ValuesInDF),"y_",
+                               trunc(12*mod(southwestMdMx_ValuesInDF,1)),'m')
+southwestMdMx_ValuesInDF[1,]=text_southwestMdMx_ValuesInDF
+
+####
+
+tapply(crimePrecinct$yearsToReport,
+       crimePrecinct$Precinct,
+       summary)$WEST[c(3,6)]%>%
+            round(3) %>%
+               as.list()%>%
+                 as.data.frame() ->westMdMx_ValuesInDF
+names(westMdMx_ValuesInDF)=c('median','max')
+text_westMdMx_ValuesInDF=paste0(trunc(westMdMx_ValuesInDF),"y_",
+                               trunc(12*mod(westMdMx_ValuesInDF,1)),'m')
+westMdMx_ValuesInDF[1,]=text_westMdMx_ValuesInDF
+```
+
+```{r}
+westMdMx_ValuesInDF
+```
+
+```{r}
+southwestMdMx_ValuesInDF
+```
+
+```{r}
+
+tableAnnot=function(theValues,posX,posY){
+                 output=theValues[c(3,6)]%>%
+                         round(3) %>%
+                          as.list()%>%
+                            as.data.frame() 
+                 names(output)=c('median','max')
+                 text_output=paste0(trunc(output),"y_",
+                                    trunc(12*mod(output,1)),'m')
+                 output[1,]=text_output
+                 
+                 tibble(x=posX,y=posY,tb=list(output))
+}
+
+```
+```{r}
+E_input=tapply(crimePrecinct$yearsToReport,
+       crimePrecinct$Precinct,
+       summary)$EAST
+
+tableAnnot(E_input,1.2,6)
+
+```
+```{r}
+E_FromFun=tableAnnot(E_input,1.2,6)
+vio2 + geom_table(data=E_FromFun,
+             aes(x = x, y = y, label = tb))
+```
+```{r}
+N_Input=tapply(crimePrecinct$yearsToReport,
+       crimePrecinct$Precinct,
+       summary)$NORTH
+S_Input=tapply(crimePrecinct$yearsToReport,
+       crimePrecinct$Precinct,
+       summary)$SOUTH
+SW_Input=tapply(crimePrecinct$yearsToReport,
+       crimePrecinct$Precinct,
+       summary)$SOUTHWEST
+W_Input=tapply(crimePrecinct$yearsToReport,
+       crimePrecinct$Precinct,
+       summary)$WEST
+
+
+E_FromFun=tableAnnot(E_input,1,-1)
+N_FromFun=tableAnnot(N_Input,2,-1)
+S_FromFun=tableAnnot(S_Input,3,-1)
+SW_FromFun=tableAnnot(SW_Input,4,-1)
+W_FromFun=tableAnnot(W_Input,5,-1)
+```
+
+```{r}
+
+
+vio2 + geom_table(data=E_FromFun,
+             aes(x = x, y = y, label = tb),vjust = 0.5) + 
+       geom_table(data=N_FromFun,
+             aes(x = x, y = y, label = tb),vjust = 0.5) + 
+       geom_table(data=S_FromFun,
+             aes(x = x, y = y, label = tb),vjust = 0.5) + 
+       geom_table(data=SW_FromFun,
+             aes(x = x, y = y, label = tb),vjust = 0.5) + 
+       geom_table(data=W_FromFun,
+             aes(x = x, y = y, label = tb),vjust = 0.5)
+
+```
+
+
+What about values easier to decode:
+
+```{r}
+summaryBy=aggregate(data=crimePrecinct,
+                    yearsToReport~Precinct,
+                    FUN = function(x) c(median = median(x),
+                                        max=max(x)) )
+#when several functions at play
+summaryBy=do.call(data.frame,summaryBy)
+summaryBy
+```
+
+
+
+
+
+Let's change the default names: 
+
+```{r, warning=FALSE, message=FALSE}
+names(summaryBy)=c('Precinct','median','max')
+```
+
+Now, let's use that data to plot:
+
+```{r, warning=FALSE, message=FALSE}
+base = ggplot(data=summaryBy, aes(x=Precinct))
+base + geom_point(aes(y=median),color='blue') +
+       geom_point(aes(y=max),color='red')
+    
+
+```
+
+The _summaryBy_ dataframe is in _wide_ format. It may be more efficient to transform it into a _long_ format:
+
+```{r, warning=FALSE, message=FALSE}
+summaryBy_long=reshape2::melt(summaryBy,variable.name = 'stats',
+                              value.name = 'yearsToReport',
+                              id.vars='Precinct')
+summaryBy_long
+```
+
+Check the order of our stats:
+
+```{r, warning=FALSE, message=FALSE}
+table(summaryBy_long$stats)
+```
+That is ko, but  if you want a different order (it affects the plots):
+
+```{r, warning=FALSE, message=FALSE}
+summaryBy_long$stats=factor(summaryBy_long$stats,
+                            levels = c('median','max'))
+table(summaryBy_long$stats)
+```
+
+We are ready to plot:
+
+```{r, warning=FALSE, message=FALSE}
+base=ggplot(data=summaryBy_long, aes(x=Precinct)) + theme_light()
+base + geom_point(aes(y=yearsToReport, color=stats))
+```
+
+What about bars?
+
+```{r, warning=FALSE, message=FALSE}
+bars=base + geom_bar(aes(y=yearsToReport,fill=stats),stat = 'identity',show.legend = F)
+
+bars + facet_grid(~stats) + coord_flip() 
+```
+
+
+
+```{r, warning=FALSE, message=FALSE}
+bars=base + geom_point(aes(y=yearsToReport,fill=stats),
+                       stat = 'identity',
+                       show.legend = F)
+
+
+bars + facet_grid(~stats) + coord_flip() 
+```
+```{r, warning=FALSE, message=FALSE}
+bars=base + geom_text(aes(y=yearsToReport,label=round(yearsToReport,1),color=stats),size=3, show.legend = F, facetype='bold')
+
+
+bars + facet_grid(~stats) + coord_flip() 
+```
+```{r}
+bars + facet_grid(~stats,scales = "free_x") + coord_flip() 
+```
+
+
+
+
+You can connect the dots as a visual aid, but I will reserve that for the plot using numerical data on the horizontal axis.
+
+
