@@ -220,11 +220,11 @@ eastMdMx_ValuesInDF
 trunc(eastMdMx_ValuesInDF)
 ```
 ```{r}
-trunc(12*mod(eastMdMx_ValuesInDF,1))
+trunc(12*eastMdMx_ValuesInDF%%1)
 ```
 ```{r}
 text_eastMdMx_ValuesInDF=paste0(trunc(eastMdMx_ValuesInDF),"y_",
-                               trunc(12*mod(eastMdMx_ValuesInDF,1)),'m')
+                               trunc(12*eastMdMx_ValuesInDF%%1),'m')
 text_eastMdMx_ValuesInDF
 ```
 ```{r}
@@ -234,71 +234,14 @@ eastMdMx_ValuesInDF
 
 
 ```{r}
+library(tibble)
 eastT=tibble(x=1.2,y=6,tb=list(eastMdMx_ValuesInDF))
 
 library(ggpmisc)
 vio2 + geom_table(data=eastT,
              aes(x = x, y = y, label = tb))
 ```
-```{r}
-tapply(crimePrecinct$yearsToReport,
-       crimePrecinct$Precinct,
-       summary)$NORTH[c(3,6)]%>%
-            round(3) %>%
-               as.list()%>%
-                 as.data.frame() ->northMdMx_ValuesInDF
-names(northMdMx_ValuesInDF)=c('median','max')
-text_northMdMx_ValuesInDF=paste0(trunc(northMdMx_ValuesInDF),"y_",
-                               trunc(12*mod(northMdMx_ValuesInDF,1)),'m')
-northMdMx_ValuesInDF[1,]=text_northMdMx_ValuesInDF
 
-####
-
-tapply(crimePrecinct$yearsToReport,
-       crimePrecinct$Precinct,
-       summary)$SOUTH[c(3,6)]%>%
-            round(3) %>%
-               as.list()%>%
-                 as.data.frame() ->southMdMx_ValuesInDF
-names(southMdMx_ValuesInDF)=c('median','max')
-text_southMdMx_ValuesInDF=paste0(trunc(southMdMx_ValuesInDF),"y_",
-                               trunc(12*mod(southMdMx_ValuesInDF,1)),'m')
-southMdMx_ValuesInDF[1,]=text_southMdMx_ValuesInDF
-
-####
-
-tapply(crimePrecinct$yearsToReport,
-       crimePrecinct$Precinct,
-       summary)$SOUTHWEST[c(3,6)]%>%
-            round(3) %>%
-               as.list()%>%
-                 as.data.frame() ->southwestMdMx_ValuesInDF
-names(southwestMdMx_ValuesInDF)=c('median','max')
-text_southwestMdMx_ValuesInDF=paste0(trunc(southwestMdMx_ValuesInDF),"y_",
-                               trunc(12*mod(southwestMdMx_ValuesInDF,1)),'m')
-southwestMdMx_ValuesInDF[1,]=text_southwestMdMx_ValuesInDF
-
-####
-
-tapply(crimePrecinct$yearsToReport,
-       crimePrecinct$Precinct,
-       summary)$WEST[c(3,6)]%>%
-            round(3) %>%
-               as.list()%>%
-                 as.data.frame() ->westMdMx_ValuesInDF
-names(westMdMx_ValuesInDF)=c('median','max')
-text_westMdMx_ValuesInDF=paste0(trunc(westMdMx_ValuesInDF),"y_",
-                               trunc(12*mod(westMdMx_ValuesInDF,1)),'m')
-westMdMx_ValuesInDF[1,]=text_westMdMx_ValuesInDF
-```
-
-```{r}
-westMdMx_ValuesInDF
-```
-
-```{r}
-southwestMdMx_ValuesInDF
-```
 
 ```{r}
 
@@ -309,7 +252,7 @@ tableAnnot=function(theValues,posX,posY){
                             as.data.frame() 
                  names(output)=c('median','max')
                  text_output=paste0(trunc(output),"y_",
-                                    trunc(12*mod(output,1)),'m')
+                                    trunc(12*output%%1),'m')
                  output[1,]=text_output
                  
                  tibble(x=posX,y=posY,tb=list(output))
@@ -344,16 +287,14 @@ W_Input=tapply(crimePrecinct$yearsToReport,
        summary)$WEST
 
 
-E_FromFun=tableAnnot(E_input,1,-1)
-N_FromFun=tableAnnot(N_Input,2,-1)
-S_FromFun=tableAnnot(S_Input,3,-1)
-SW_FromFun=tableAnnot(SW_Input,4,-1)
-W_FromFun=tableAnnot(W_Input,5,-1)
+E_FromFun=tableAnnot(E_input,1,8)
+N_FromFun=tableAnnot(N_Input,2,8)
+S_FromFun=tableAnnot(S_Input,3,8)
+SW_FromFun=tableAnnot(SW_Input,4,8)
+W_FromFun=tableAnnot(W_Input,5,8)
 ```
 
 ```{r}
-
-
 vio2 + geom_table(data=E_FromFun,
              aes(x = x, y = y, label = tb),vjust = 0.5) + 
        geom_table(data=N_FromFun,
@@ -368,7 +309,36 @@ vio2 + geom_table(data=E_FromFun,
 ```
 
 
-What about values easier to decode:
+```{r}
+vio2 + geom_table(data=E_FromFun,
+             aes(x = x, y = y, label = tb),vjust = 0.5) + 
+       geom_table(data=N_FromFun,
+             aes(x = x, y = y, label = tb),vjust = 0.5) + 
+       geom_table(data=S_FromFun,
+             aes(x = x, y = y, label = tb),vjust = 0.5) + 
+       geom_table(data=SW_FromFun,
+             aes(x = x, y = y, label = tb),vjust = 0.5) + 
+       geom_table(data=W_FromFun,
+             aes(x = x, y = y, label = tb),vjust = 0.5) 
+
+# would you ever need?
+    #scale_y_continuous(trans='log2')
+    #scale_y_log10()
+```
+
+What about values easier to decode in a simpler plot?
+
+Let's recover the stats:
+
+```{r}
+library(tidyverse)
+crimePrecinct %>% 
+  group_by(Precinct) %>% 
+  summarize(vals = list(summary(yearsToReport))) %>% 
+  unnest_wider(vals)
+```
+
+
 
 ```{r}
 summaryBy=aggregate(data=crimePrecinct,
@@ -379,9 +349,6 @@ summaryBy=aggregate(data=crimePrecinct,
 summaryBy=do.call(data.frame,summaryBy)
 summaryBy
 ```
-
-
-
 
 
 Let's change the default names: 
@@ -431,8 +398,42 @@ base + geom_point(aes(y=yearsToReport, color=stats))
 
 What about bars?
 
+```{r}
+base1=ggplot(data=summaryBy_long,
+             aes(x=Precinct, y=yearsToReport,
+                 fill=stats)) # fill brings a legend
+barDodge= base1 +  geom_bar(stat="identity",
+                            position ='dodge') 
+barDodge + geom_text(size = 4,
+                     position = position_dodge(1),hjust=0,
+                     aes(label=round(yearsToReport,1)))+
+    coord_flip()
+
+```
+
+```{r}
+base1=ggplot(data=summaryBy_long,
+             aes(x=Precinct, y=yearsToReport,
+                 fill=stats)) 
+barDodge= base1 +  geom_bar(stat="identity",
+                            position =position_dodge(.7),width = 0.2) 
+barDodge + geom_text(size = 4,
+                     position = position_dodge(0.7),hjust=0,
+                     aes(label=round(yearsToReport,1))) +
+    coord_flip()
+
+```
+
+
+
+
 ```{r, warning=FALSE, message=FALSE}
-bars=base + geom_bar(aes(y=yearsToReport,fill=stats),stat = 'identity',show.legend = F)
+bars=base + geom_bar(aes(y=yearsToReport,fill=stats),
+                     stat = 'identity', width = 0.3,
+                     show.legend = F) +
+    geom_text(size = 6,
+                     position = position_dodge(0.7),hjust=1,
+                     aes(label=round(yearsToReport,1))) 
 
 bars + facet_grid(~stats) + coord_flip() 
 ```
@@ -442,24 +443,48 @@ bars + facet_grid(~stats) + coord_flip()
 ```{r, warning=FALSE, message=FALSE}
 bars=base + geom_point(aes(y=yearsToReport,fill=stats),
                        stat = 'identity',
-                       show.legend = F)
+                       show.legend = F) + 
+    geom_text(size = 4,hjust=-0.5,
+                     aes(label=round(yearsToReport,1))) +
+    geom_segment(aes(y = 0, 
+                     x = Precinct, 
+                     yend = yearsToReport, 
+                     xend = Precinct), 
+                 color = "grey50") 
 
 
 bars + facet_grid(~stats) + coord_flip() 
 ```
 ```{r, warning=FALSE, message=FALSE}
-bars=base + geom_text(aes(y=yearsToReport,label=round(yearsToReport,1),color=stats),size=3, show.legend = F, facetype='bold')
+bars=base + 
+    geom_text(size = 6,hjust=1,vjust=-0.1, 
+                     aes(label=round(yearsToReport,1),
+                         color=stats),show.legend = F) +
+    geom_segment(aes(y = 0, 
+                     x = Precinct, 
+                     yend = yearsToReport, 
+                     xend = Precinct), 
+                 color = "grey50") 
 
 
 bars + facet_grid(~stats) + coord_flip() 
 ```
-```{r}
-bars + facet_grid(~stats,scales = "free_x") + coord_flip() 
+
+```{r, warning=FALSE, message=FALSE}
+bars=base + 
+    geom_text(size = 6,hjust=1,vjust=-0.1, 
+                     aes(label=round(yearsToReport,1),
+                         color=stats),
+              show.legend = F, fontface='bold') +
+    geom_segment(aes(y = 0, 
+                     x = Precinct, 
+                     yend = yearsToReport, 
+                     xend = Precinct), 
+                 color = "grey50") +
+    scale_colour_manual(values=c("black","red"))
+
+
+bars + facet_grid(~stats) + coord_flip() 
 ```
-
-
-
-
-You can connect the dots as a visual aid, but I will reserve that for the plot using numerical data on the horizontal axis.
 
 
