@@ -74,7 +74,7 @@ base1=ggplot(data=subCrime,
 base1 + geom_boxplot(aes(x=Precinct))
 ```
 
-```{r boxNumCat1, eval=TRUE}
+```{r, eval=TRUE}
 library(ggplot2)
 base2=ggplot(data=subCrime,
             aes(x=DaysToReport))
@@ -136,7 +136,7 @@ baseBox=ggplot(data=crimePrecinct,
 baseBox + geom_boxplot(aes(x=Precinct)) + coord_flip()
 ```
 
-```{r boxNumCat1, eval=TRUE}
+```{r , eval=TRUE}
 library(ggplot2)
 baseHist=ggplot(data=crimePrecinct,
             aes(x=yearsToReport))
@@ -433,7 +433,8 @@ bars=base + geom_bar(aes(y=yearsToReport,fill=stats),
                      show.legend = F) +
     geom_text(size = 6,
                      position = position_dodge(0.7),hjust=1,
-                     aes(label=round(yearsToReport,1))) 
+                     aes(y=yearsToReport,
+                         label=round(yearsToReport,1))) 
 
 bars + facet_grid(~stats) + coord_flip() 
 ```
@@ -445,7 +446,8 @@ bars=base + geom_point(aes(y=yearsToReport,fill=stats),
                        stat = 'identity',
                        show.legend = F) + 
     geom_text(size = 4,hjust=-0.5,
-                     aes(label=round(yearsToReport,1))) +
+                     aes(y=yearsToReport,
+                         label=round(yearsToReport,1))) +
     geom_segment(aes(y = 0, 
                      x = Precinct, 
                      yend = yearsToReport, 
@@ -458,7 +460,8 @@ bars + facet_grid(~stats) + coord_flip()
 ```{r, warning=FALSE, message=FALSE}
 bars=base + 
     geom_text(size = 6,hjust=1,vjust=-0.1, 
-                     aes(label=round(yearsToReport,1),
+                     aes(y=yearsToReport,
+                         label=round(yearsToReport,1),
                          color=stats),show.legend = F) +
     geom_segment(aes(y = 0, 
                      x = Precinct, 
@@ -473,7 +476,8 @@ bars + facet_grid(~stats) + coord_flip()
 ```{r, warning=FALSE, message=FALSE}
 bars=base + 
     geom_text(size = 6,hjust=1,vjust=-0.1, 
-                     aes(label=round(yearsToReport,1),
+                     aes(y=yearsToReport,
+                         label=round(yearsToReport,1),
                          color=stats),
               show.legend = F, fontface='bold') +
     geom_segment(aes(y = 0, 
