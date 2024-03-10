@@ -12,6 +12,15 @@ _____
 
 ___________
 
+1. [Exploring the data ](#part1)
+
+2. [Common plots](#part2)
+
+3. [Complez and custom plots](#part3)
+
+4. [LAB (next meeting).](#part4) 
+
+___________
 
 Let me use the [data about crime](https://data.seattle.gov/Public-Safety/Crime-Data/4fs7-3vj5) from the Seattle Open Data portal:
 
@@ -58,63 +67,50 @@ subCrime=subCrime[complete.cases(subCrime),]
 
 
 
-The goal in this session is to find a visualization to represent the _behavior of a numerical variable_ in _each level_ of a categorical variable. Let's choose two of these kinds:
+
+[Go to table of contents.](#TOC)
+
+________________
+
+
+<a id='part1'></a>
+
+## Exploring the data
+
+
+The goal in this session is to find a visualization to represent the _behavior of a numerical variable_ in _each level_ of a categorical variable. Let's choose two of these kinds and see the descriptives:
 
 ```{r}
 tapply(subCrime$DaysToReport,subCrime$Precinct, summary)
 ```
-Two familiar plots could be:
+As there seems to be lots s asymmetry, let's explore with boxplots several lengths using **ggarrange** from _ggpubr_:
 
 
-```{r boxNumCat1, eval=TRUE}
-library(ggplot2)
-base1=ggplot(data=subCrime,
-            aes(y=DaysToReport))
-
-base1 + geom_boxplot(aes(x=Precinct))
-```
-
-```{r, eval=TRUE}
-library(ggplot2)
-base2=ggplot(data=subCrime,
-            aes(x=DaysToReport))
-base2 + geom_histogram(aes(fill=Precinct))
-```
-```{r}
-base2 + geom_histogram() + facet_grid(.~Precinct)
-```
-
-
-
-Most cases are reported in a day. Let me explore other lengths using **ggarrange**:
-
-
-```{r weeksandabove, eval=TRUE}
-# several boxplots, from week and above
+```{r weeksandabove, eval=TRUE, message=FALSE}
 
 library(ggpubr)
 
-base7=ggplot(data=subCrime[subCrime$DaysToReport>=7,],
+baseDay=ggplot(data=subCrime,
             aes(x=Precinct,y=DaysToReport)) 
-box7=base7 + geom_boxplot() + labs(title = "week and above")
+boxDay=baseDay + geom_boxplot() + labs(title = "dayly")
 
-base30=ggplot(data=subCrime[subCrime$DaysToReport>=30,],
+baseWeek=ggplot(data=subCrime[subCrime$DaysToReport>7,],
+            aes(x=Precinct,y=DaysToReport)) 
+boxWeek=baseWeek + geom_boxplot() + labs(title = ">week")
+
+baseMonth=ggplot(data=subCrime[subCrime$DaysToReport>30,],
             aes(x=Precinct,y=DaysToReport))
-box30=base30 + geom_boxplot() + labs(title = "month and above")
+boxMonth=baseMonth + geom_boxplot() + labs(title = ">month")
 
-base180=ggplot(data=subCrime[subCrime$DaysToReport>=180,],
+
+baseYear=ggplot(data=subCrime[subCrime$DaysToReport>365,],
             aes(x=Precinct,y=DaysToReport)) 
-box180=base180 + geom_boxplot() + labs(title = "half year and above")
-
-
-base365=ggplot(data=subCrime[subCrime$DaysToReport>=365,],
-            aes(x=Precinct,y=DaysToReport)) 
-box365=base365 + geom_boxplot() + labs(title = "year and above")
+boxYear=baseYear + geom_boxplot() + labs(title = "> year")
 
 
 
 #all in one:
-ggarrange(box7,box30,box180,box365)
+ggarrange(boxDay,boxWeek,boxMonth,boxYear)
 
 ```
 
@@ -126,6 +122,29 @@ crimePrecinct=subCrime[subCrime$DaysToReport>365,]
 crimePrecinct$yearsToReport=crimePrecinct$DaysToReport/365
 ```
 
+In general, we want to see if the distribution is different across levels:
+
+```{r}
+kruskal.test(yearsToReport~Precinct,data=crimePrecinct)
+```
+There is a significant probability (0.1) that some precinct is different from another; this can be identified here:
+
+```{r}
+pairwise.wilcox.test(crimePrecinct$yearsToReport,crimePrecinct$Precinct,
+                     p.adjust.method = "BH")
+```
+Arguably, EAST differs from NORTH and SOUTH; and WEST from NORTH. What plot may help us show that?
+
+[Go to table of contents.](#TOC)
+
+________________
+
+
+<a id='part2'></a>
+
+## Common plots for  differences
+
+
 Let's redo the boxplot and histograms:
 
 ```{r, eval=TRUE}
@@ -133,32 +152,35 @@ library(ggplot2)
 baseBox=ggplot(data=crimePrecinct,
             aes(y=yearsToReport))
 
-baseBox + geom_boxplot(aes(x=Precinct)) + coord_flip()
+baseBox + geom_boxplot(aes(x=reorder(Precinct,yearsToReport,median))) +
+    coord_flip()
 ```
 
+Density plots?
+
 ```{r , eval=TRUE}
-library(ggplot2)
+ggplot(crimePrecinct) + geom_density(aes(x = yearsToReport),show.legend = F) + facet_grid(reorder(Precinct,yearsToReport,median)~.) 
+
+
+```
+
+Or the histogram:
+
+```{r}
 baseHist=ggplot(data=crimePrecinct,
             aes(x=yearsToReport))
 
-baseHist + geom_histogram() + facet_grid(Precinct~.) 
+baseHist + geom_histogram() +facet_grid(reorder(Precinct,yearsToReport,median)~.)
+
+
 ```
 
-We can see better results in the previous plots, especially in the boxplot:
-
-- Clearer positional values (quartiles)
-- Less, and more relevant, outliers.
-
-The histograms does not add much insight. 
 
 
-Another common visual is the mean-error plot, which shows the mean of the numeric variable including a confidence interval. Let me first recall the two variables I have been using:
+The boxplot helps more with positional values (quartiles) and outliers; but due to the skewness neither the histograms nor the density plot add much insight. 
 
-```{r, eval=TRUE}
-crimePrecinct[,c('Precinct', 'yearsToReport')] %>%head(20)
-```
 
-The  plan is to show the mean per precinct:
+Skewness can be hidden, which is wrong, with common visuals as the mean-error plot, which shows the mean of the numeric variable including a confidence interval. Let me first show the mean of _yearsToReport_ per _Precinct_:
 
 ```{r, eval=TRUE}
 baseMEANs=ggplot(crimePrecinct, aes(x=Precinct,
@@ -167,13 +189,13 @@ pointMEANS=baseMEANs + geom_point(stat="summary")
 pointMEANS
 ```
 
-We can add now the error bar:
+Now, we can add now the error bar:
 ```{r, eval=TRUE}
 pointMEANS=pointMEANS + geom_errorbar(stat="summary") 
 pointMEANS
 ```
 
-Error bars have a **huge problem**, they give you the illusion of symmetry. So, I recommend you include the data in the plot:
+Error bars give you the illusion of symmetry; so, consider including the data in the plot:
 
 ```{r, eval=TRUE}
 baseMEANs= ggplot(crimePrecinct, aes(x=Precinct,
@@ -187,17 +209,33 @@ jitterMEANs
     
 ```
 
+The task is to reveal these:
 
-We could try the violin plot?
+```{r}
+tapply(crimePrecinct$yearsToReport,crimePrecinct$Precinct, summary)
+```
+
+[Go to table of contents.](#TOC)
+
+________________
+
+
+<a id='part3'></a>
+
+## Complex and custom plots
+
+
+Could the violin plot be the answer?
 
 ```{r}
 
 vio=baseBox+geom_violin(aes(x=Precinct), fill="magenta",trim = F)
 vio + coord_flip() 
 ```
-```{r}
-tapply(crimePrecinct$yearsToReport,crimePrecinct$Precinct, summary)
-```
+
+Let' see if the grid can help represent the stats?
+
+
 ```{r}
 vio2= vio + coord_flip() + 
     scale_y_continuous(breaks = c(1,2,8)) + 
@@ -205,6 +243,10 @@ vio2= vio + coord_flip() +
 
 vio2
 ```
+
+It is difficult to annotate cat-num plots, because each plot has different values. Let me compute the _median_ and _max_ values for one of the violins:
+
+
 ```{r}
 tapply(crimePrecinct$yearsToReport,
        crimePrecinct$Precinct,
@@ -216,31 +258,43 @@ names(eastMdMx_ValuesInDF)=c('median','max')
 eastMdMx_ValuesInDF
 
 ```
+Let me keep the integer part:
+
 ```{r}
 trunc(eastMdMx_ValuesInDF)
 ```
+Now the decimal part, coverted to months:
+
 ```{r}
 trunc(12*eastMdMx_ValuesInDF%%1)
 ```
+This could be a simple annotation for this case:
+
 ```{r}
 text_eastMdMx_ValuesInDF=paste0(trunc(eastMdMx_ValuesInDF),"y_",
                                trunc(12*eastMdMx_ValuesInDF%%1),'m')
 text_eastMdMx_ValuesInDF
 ```
+Now, replace the values in *eastMdMx_ValuesInDF*:
+
 ```{r}
 eastMdMx_ValuesInDF[1,]=text_eastMdMx_ValuesInDF
 eastMdMx_ValuesInDF
 ```
+Let's annotate:
 
-
-```{r}
+```{r, message=FALSE}
+## prepare annotation
 library(tibble)
 eastT=tibble(x=1.2,y=6,tb=list(eastMdMx_ValuesInDF))
 
+## add a geom_table()
 library(ggpmisc)
 vio2 + geom_table(data=eastT,
              aes(x = x, y = y, label = tb))
 ```
+
+We need annotarions for each violin. Too much work, unless we create a function:
 
 
 ```{r}
@@ -259,6 +313,9 @@ tableAnnot=function(theValues,posX,posY){
 }
 
 ```
+
+If we have the summary for a precinct, we have a annotation:
+
 ```{r}
 E_input=tapply(crimePrecinct$yearsToReport,
        crimePrecinct$Precinct,
@@ -267,11 +324,8 @@ E_input=tapply(crimePrecinct$yearsToReport,
 tableAnnot(E_input,1.2,6)
 
 ```
-```{r}
-E_FromFun=tableAnnot(E_input,1.2,6)
-vio2 + geom_table(data=E_FromFun,
-             aes(x = x, y = y, label = tb))
-```
+Let's use our function for each case:
+
 ```{r}
 N_Input=tapply(crimePrecinct$yearsToReport,
        crimePrecinct$Precinct,
@@ -294,6 +348,8 @@ SW_FromFun=tableAnnot(SW_Input,4,8)
 W_FromFun=tableAnnot(W_Input,5,8)
 ```
 
+We get:
+
 ```{r}
 vio2 + geom_table(data=E_FromFun,
              aes(x = x, y = y, label = tb),vjust = 0.5) + 
@@ -306,38 +362,16 @@ vio2 + geom_table(data=E_FromFun,
        geom_table(data=W_FromFun,
              aes(x = x, y = y, label = tb),vjust = 0.5)
 
-```
-
-
-```{r}
-vio2 + geom_table(data=E_FromFun,
-             aes(x = x, y = y, label = tb),vjust = 0.5) + 
-       geom_table(data=N_FromFun,
-             aes(x = x, y = y, label = tb),vjust = 0.5) + 
-       geom_table(data=S_FromFun,
-             aes(x = x, y = y, label = tb),vjust = 0.5) + 
-       geom_table(data=SW_FromFun,
-             aes(x = x, y = y, label = tb),vjust = 0.5) + 
-       geom_table(data=W_FromFun,
-             aes(x = x, y = y, label = tb),vjust = 0.5) 
-
 # would you ever need?
     #scale_y_continuous(trans='log2')
     #scale_y_log10()
+
 ```
+
 
 What about values easier to decode in a simpler plot?
 
 Let's recover the stats:
-
-```{r}
-library(tidyverse)
-crimePrecinct %>% 
-  group_by(Precinct) %>% 
-  summarize(vals = list(summary(yearsToReport))) %>% 
-  unnest_wider(vals)
-```
-
 
 
 ```{r}
@@ -376,17 +410,16 @@ summaryBy_long=reshape2::melt(summaryBy,variable.name = 'stats',
 summaryBy_long
 ```
 
-Check the order of our stats:
+Check the order of our stat factors:
 
 ```{r, warning=FALSE, message=FALSE}
-table(summaryBy_long$stats)
+levels(summaryBy_long$stats)
 ```
-That is ko, but  if you want a different order (it affects the plots):
+That is the right order, but  if you would prefer  a different order (it affects the plots) you would code:
 
 ```{r, warning=FALSE, message=FALSE}
 summaryBy_long$stats=factor(summaryBy_long$stats,
                             levels = c('median','max'))
-table(summaryBy_long$stats)
 ```
 
 We are ready to plot:
@@ -411,6 +444,9 @@ barDodge + geom_text(size = 4,
 
 ```
 
+Thinner bars?
+
+
 ```{r}
 base1=ggplot(data=summaryBy_long,
              aes(x=Precinct, y=yearsToReport,
@@ -425,7 +461,7 @@ barDodge + geom_text(size = 4,
 ```
 
 
-
+The use of facetted bars?
 
 ```{r, warning=FALSE, message=FALSE}
 bars=base + geom_bar(aes(y=yearsToReport,fill=stats),
@@ -439,7 +475,7 @@ bars=base + geom_bar(aes(y=yearsToReport,fill=stats),
 bars + facet_grid(~stats) + coord_flip() 
 ```
 
-
+...or segments?
 
 ```{r, warning=FALSE, message=FALSE}
 bars=base + geom_point(aes(y=yearsToReport,fill=stats),
@@ -455,11 +491,21 @@ bars=base + geom_point(aes(y=yearsToReport,fill=stats),
                  color = "grey50") 
 
 
-bars + facet_grid(~stats) + coord_flip() 
+bars =bars + facet_grid(~stats) + coord_flip() 
+bars
 ```
+
+A better location for the text?
+
+```{r}
+bars + scale_y_continuous(limits = c(0,10))
+```
+
+...or
+
 ```{r, warning=FALSE, message=FALSE}
 bars=base + 
-    geom_text(size = 6,hjust=1,vjust=-0.1, 
+    geom_text(size = 5,hjust=1,vjust=-0.1, 
                      aes(y=yearsToReport,
                          label=round(yearsToReport,1),
                          color=stats),show.legend = F) +
@@ -473,9 +519,12 @@ bars=base +
 bars + facet_grid(~stats) + coord_flip() 
 ```
 
+...customizing the colors:
+
+
 ```{r, warning=FALSE, message=FALSE}
 bars=base + 
-    geom_text(size = 6,hjust=1,vjust=-0.1, 
+    geom_text(size = 5,hjust=1,vjust=-0.1, 
                      aes(y=yearsToReport,
                          label=round(yearsToReport,1),
                          color=stats),
@@ -490,5 +539,19 @@ bars=base +
 
 bars + facet_grid(~stats) + coord_flip() 
 ```
+
+
+[Go to table of contents.](#TOC)
+
+________________
+
+
+<a id='part4'></a>
+
+## LAB for THURSDAY
+
+Bring at least one of these plots for your own data.
+
+
 
 
