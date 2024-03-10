@@ -22,6 +22,11 @@ ___________
 
 ___________
 
+
+```{r klippy, echo=FALSE, include=TRUE, warning=FALSE, message=FALSE}
+klippy::klippy(position = c('top', 'right'))
+```
+
 Let me use the [data about crime](https://data.seattle.gov/Public-Safety/Crime-Data/4fs7-3vj5) from the Seattle Open Data portal:
 
 ```{r collect, eval=TRUE}
