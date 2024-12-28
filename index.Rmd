@@ -18,7 +18,7 @@ ___________
 
 3. [Complex and custom plots](#part3)
 
-4. [LAB (next meeting).](#part4) 
+4. [Deliverable II (option 2)](#part4) 
 
 ___________
 
@@ -27,7 +27,7 @@ ___________
 klippy::klippy(position = c('top', 'right'))
 ```
 
-Let me use the [data about crime](https://data.seattle.gov/Public-Safety/Crime-Data/4fs7-3vj5) from the Seattle Open Data portal:
+Let me use again the data about crime from the Seattle Open Data portal:
 
 ```{r collect, eval=TRUE}
 rm(list = ls())
@@ -83,7 +83,7 @@ ________________
 ## Exploring the data
 
 
-The goal in this session is to find a visualization to represent the _behavior of a numerical variable_ in _each level_ of a categorical variable. Let's choose two of these kinds and see the descriptives:
+The goal  is to find a visualization to represent the _behavior of a numerical variable_ in _each level_ of a categorical variable. Let's choose one of each and see the descriptives:
 
 ```{r}
 tapply(subCrime$DaysToReport,subCrime$Precinct, summary)
@@ -119,7 +119,7 @@ ggarrange(boxDay,boxWeek,boxMonth,boxYear)
 
 ```
 
-Let's build our visual from the crimes that  ONE year or longer to report.
+Let's build our visual from the crimes that took ONE year or longer to report.
 
 
 ```{r, eval=TRUE}
@@ -136,11 +136,10 @@ kruskal.test(yearsToReport~Precinct,data=crimePrecinct)
 There is a significant probability (0.1) that some precinct is different from another; this can be identified here:
 
 ```{r}
-pairwise.wilcox.test(crimePrecinct$yearsToReport,crimePrecinct$Precinct,
-                     p.adjust.method = "BH")
+pairwise.wilcox.test(crimePrecinct$yearsToReport,crimePrecinct$Precinct)
 ```
 
-Arguably, EAST might differ from NORTH and SOUTH; and WEST from NORTH. What plot may help us show that?
+Arguably, EAST might differ from NORTH; and WEST from NORTH. What plot may help us show that?
 
 [Go to table of contents.](#TOC)
 
@@ -555,10 +554,23 @@ ________________
 
 <a id='part4'></a>
 
-## LAB for THURSDAY
+## Deliverable II (option 2)
 
-Bring at least one of these plots for your own data.
+This link has data from this [website](https://www.mass.gov/lists/massachusetts-state-police-arrest-details), which informs about Massachusetts State Police arrest details.
+```{r}
+linkMass="https://github.com/DACSS-Visual/tabular_bivar_catcat/raw/refs/heads/main/data/MSP%20DFS%20Arrests%2019-20Q1.xlsx"
 
+#see it
+library(rio)
+arrests=rio::import(linkMass,which = 1)
+head(arrests)
+```
+
+Use the columns **Arrest Type** and **Age** to make a visual. The excel file has the data in the first sheet; the second one has the _Arrest Type codes_ (5 codes).
+
+_____
+
+[Go to table of contents.](#TOC)
 
 
 
