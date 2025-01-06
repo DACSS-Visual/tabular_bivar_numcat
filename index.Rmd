@@ -373,7 +373,16 @@ vio2 + geom_table(data=E_FromFun,
     #scale_y_log10()
 
 ```
+Remember the violin plot shows **density**, so it looks as though there are values that are not supposed to be:
 
+```{r}
+baseBox=ggplot(data=crimePrecinct,
+            aes(y=yearsToReport)) 
+baseBox + geom_violin(aes(x=Precinct), fill="white",trim = F) + geom_boxplot(aes(x=Precinct),fill=NA,color='red') + scale_y_log10()
+
+```
+
+The boxplot above does show the values, and as you see the violin shows a density, a continuous distribution. The values are greater than 1, and you see the boxplot starst in one; but the violin plot shows a distributions as there were values lower than 1.
 
 What about values easier to decode in a simpler plot?
 
