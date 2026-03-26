@@ -8,7 +8,7 @@ _____
 
 
 
-# Tabular data - Bivariate relationships II: Categorical-Numerical
+# Tabular data - Bivariate relationships III: Categorical-Numerical
 
 ___________
 
