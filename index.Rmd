@@ -18,7 +18,7 @@ ___________
 
 3. [Complex and custom plots](#part3)
 
-4. [Deliverable II (option 2)](#part4) 
+<!-- 4. [Deliverable II (option 2)](#part4)  -->
 
 ___________
 
@@ -133,7 +133,7 @@ In general, we want to see if the distribution is different across levels:
 kruskal.test(yearsToReport~Precinct,data=crimePrecinct)
 ```
 
-There is a significant probability (0.1) that some precinct is different from another; this can be identified here:
+We find borderline evidence of precinct-level differences (p = 0.058 falls just above the conventional 0.05 threshold). Let's explore which pairs may be driving this pattern:
 
 ```{r}
 pairwise.wilcox.test(crimePrecinct$yearsToReport,crimePrecinct$Precinct)
@@ -235,7 +235,7 @@ Could the violin plot be the answer?
 
 ```{r}
 
-vio=baseBox+geom_violin(aes(x=Precinct), fill="magenta",trim = F)
+vio=baseBox+geom_violin(aes(x=Precinct), fill="orange",trim = F)
 vio + coord_flip() 
 ```
 
@@ -289,7 +289,7 @@ eastMdMx_ValuesInDF
 ```
 Let's annotate:
 
-```{r, message=FALSE}
+```{r, message=FALSE,warning=FALSE}
 ## prepare annotation
 library(tibble)
 eastT=tibble(x=1.2,y=6,tb=list(eastMdMx_ValuesInDF))
@@ -404,52 +404,48 @@ Let's change the default names:
 
 ```{r, warning=FALSE, message=FALSE}
 names(summaryBy)=c('Precinct','median','max')
+summaryBy
 ```
 
-Now, let's use that data to plot:
+This is a wide format, then:
 
-```{r, warning=FALSE, message=FALSE}
-base = ggplot(data=summaryBy, aes(x=Precinct))
-base + geom_point(aes(y=median),color='blue') +
+```{r}
+ggplot(data=summaryBy, aes(x=Precinct))  +
+  # geom per column
+  geom_point(aes(y=median),color='blue') +
        geom_point(aes(y=max),color='red')
     
-
 ```
 
-The _summaryBy_ dataframe is in _wide_ format. It may be more efficient to transform it into a _long_ format:
-
-```{r, warning=FALSE, message=FALSE}
-summaryBy_long=reshape2::melt(summaryBy,variable.name = 'stats',
-                              value.name = 'yearsToReport',
-                              id.vars='Precinct')
+It is more manageable if we use the long format:
+```{r}
+summaryBy_long <- reshape2::melt(summaryBy, 
+                                  id.vars = "Precinct",
+                                  variable.name = "stat",
+                                  value.name = "yearsToReport")
 summaryBy_long
 ```
+Now, 'color' uses a variable,
 
-Check the order of our stat factors:
+```{r}
+# Then map color aesthetically:
+base_summ=ggplot(summaryBy_long) 
+vars_summ=base_summ+ aes(x = Precinct, y = yearsToReport, color = stat)
+geom_summ= vars_summ + geom_point(size = 5) 
 
-```{r, warning=FALSE, message=FALSE}
-levels(summaryBy_long$stats)
+  # we manage color wihth palettes 
+geom_summ + scale_color_brewer(palette = "Set2") +  
+            labs(color = "Statistic")  # Legend title
 ```
-That is the right order, but  if you would prefer  a different order (it affects the plots) you would code:
 
-```{r, warning=FALSE, message=FALSE}
-summaryBy_long$stats=factor(summaryBy_long$stats,
-                            levels = c('median','max'))
-```
 
-We are ready to plot:
-
-```{r, warning=FALSE, message=FALSE}
-base=ggplot(data=summaryBy_long, aes(x=Precinct)) + theme_light()
-base + geom_point(aes(y=yearsToReport, color=stats))
-```
 
 What about bars?
 
 ```{r}
 base1=ggplot(data=summaryBy_long,
              aes(x=Precinct, y=yearsToReport,
-                 fill=stats)) # fill brings a legend
+                 fill=stat)) # fill brings a legend
 barDodge= base1 +  geom_bar(stat="identity",
                             position ='dodge') 
 barDodge + geom_text(size = 4,
@@ -465,7 +461,7 @@ Thinner bars?
 ```{r}
 base1=ggplot(data=summaryBy_long,
              aes(x=Precinct, y=yearsToReport,
-                 fill=stats)) 
+                 fill=stat)) 
 barDodge= base1 +  geom_bar(stat="identity",
                             position =position_dodge(.7),width = 0.2) 
 barDodge + geom_text(size = 4,
@@ -479,25 +475,26 @@ barDodge + geom_text(size = 4,
 The use of facetted bars?
 
 ```{r, warning=FALSE, message=FALSE}
-bars=base + geom_bar(aes(y=yearsToReport,fill=stats),
+bars=base_summ + geom_bar(aes(x=Precinct,y=yearsToReport,fill=stat),
                      stat = 'identity', width = 0.3,
                      show.legend = F) +
     geom_text(size = 6,
                      position = position_dodge(0.7),hjust=1,
-                     aes(y=yearsToReport,
+                     aes(x=Precinct,
+                         y=yearsToReport,
                          label=round(yearsToReport,1))) 
 
-bars + facet_grid(~stats) + coord_flip() 
+bars + facet_grid(~stat) + coord_flip() 
 ```
 
 ...or segments?
 
 ```{r, warning=FALSE, message=FALSE}
-bars=base + geom_point(aes(y=yearsToReport,fill=stats),
+bars=base_summ + geom_point(aes(x=Precinct,y=yearsToReport,fill=stat),
                        stat = 'identity',
                        show.legend = F) + 
     geom_text(size = 4,hjust=-0.5,
-                     aes(y=yearsToReport,
+                     aes(x=Precinct,y=yearsToReport,
                          label=round(yearsToReport,1))) +
     geom_segment(aes(y = 0, 
                      x = Precinct, 
@@ -506,7 +503,7 @@ bars=base + geom_point(aes(y=yearsToReport,fill=stats),
                  color = "grey50") 
 
 
-bars =bars + facet_grid(~stats) + coord_flip() 
+bars =bars + facet_grid(~stat) + coord_flip() 
 bars
 ```
 
@@ -519,11 +516,12 @@ bars + scale_y_continuous(limits = c(0,10))
 ...or
 
 ```{r, warning=FALSE, message=FALSE}
-bars=base + 
+bars=base_summ+ 
     geom_text(size = 5,hjust=1,vjust=-0.1, 
-                     aes(y=yearsToReport,
+                     aes(x=Precinct,
+                         y=yearsToReport,
                          label=round(yearsToReport,1),
-                         color=stats),show.legend = F) +
+                         color=stat),show.legend = F) +
     geom_segment(aes(y = 0, 
                      x = Precinct, 
                      yend = yearsToReport, 
@@ -531,18 +529,19 @@ bars=base +
                  color = "grey50") 
 
 
-bars + facet_grid(~stats) + coord_flip() 
+bars + facet_grid(~stat) + coord_flip() 
 ```
 
 ...customizing the colors:
 
 
 ```{r, warning=FALSE, message=FALSE}
-bars=base + 
+bars=base_summ + 
     geom_text(size = 5,hjust=1,vjust=-0.1, 
-                     aes(y=yearsToReport,
+                     aes(x=Precinct,
+                         y=yearsToReport,
                          label=round(yearsToReport,1),
-                         color=stats),
+                         color=stat),
               show.legend = F, fontface='bold') +
     geom_segment(aes(y = 0, 
                      x = Precinct, 
@@ -552,34 +551,92 @@ bars=base +
     scale_colour_manual(values=c("black","red"))
 
 
-bars + facet_grid(~stats) + coord_flip() 
+bars + facet_grid(~stat) + coord_flip() + theme_light()
 ```
 
+There are informative plots that can be done with simpler code that will help us highlight if there are difference between these neighborhoods, but require a more solid understanding of basic stats. Let's try the Cumulative Distribution Function (ECDF):
+
+```{r}
+base_ecdf=ggplot(crimePrecinct)
+
+vars_ecfd=base_ecdf+  
+       aes(x = yearsToReport, 
+           color = reorder(Precinct, yearsToReport))
+geom_ecfd=vars_ecfd +   stat_ecdf(linewidth = 1)
+
+geom_ecfd
+```
+That was simple code! While a boxplot reduces your data to five numbers (the "summary"), it can hide the "texture" of how crimes are reported between those points. The Kruskal-Wallis and Wilcoxon tests look at the ranks of the entire distribution.
+
+The ECDF is the visual version of these tests. If one line is consistently above another, it means that group is "stochastically smaller" (reporting faster). In your data, the NORTH line is the lowest, which visually explains why the p-value was leaning toward significance: it isn't just one outlier; the entire "reporting behavior" in the North is shifted to the right (slower).
+
+Let me add some details"
+
+```{r}
+
+geom_ecfd +
+  # 1. The Median Reference Line
+  geom_hline(yintercept = 0.5, 
+             linetype = "dashed", 
+             color = "grey50", 
+             alpha = 0.8) +
+  # 2. The Text Annotation
+  annotate("text", 
+           x = 1,              # Position at the start of the X-axis
+           y = 0.52,           # Slightly above the line
+           label = "Median (50%)", 
+           hjust = -4,          # to the right
+           color = "grey40", 
+           fontface = "italic") +
+  scale_x_log10() + 
+  theme_minimal() +
+  labs(title = "Cumulative Distribution of Reporting Times",
+       subtitle = "The intersection with the dashed line shows the median reporting time",
+       y = "Fraction of Crimes Reported",
+       x = "Years to Report (Log Scale)",
+       color = "Precinct")
+```
+
+
+**How to read the ECDF Plot**
+
+To make this visualization intuitive, follow this "Reading Guide" for the ECDF:
+
+* **The X-Axis (Years to Report):** This represents our "deadline." Because we used `scale_x_log10()`, we can see the detail in the early years (1–2 years), which is where most of the reporting action happens.
+* **The Y-Axis (Fraction Reported):** This is the percentage of total crimes that have been reported by that specific time point. It always ranges from **0.0** (0%) to **1.0** (100%).
+* **The Median (The Dashed Line):** The point where a precinct's curve crosses the **0.5 (50%)** dashed line is its **Median Reporting Time**. 
+    * If the intersection is further to the **left**, the precinct reports half its crimes quickly.
+    * If it's further to the **right** (like **NORTH**), the "typical" crime takes much longer to be reported.
+* **The "High Line" vs. "Low Line":**
+    * A **Higher Line** (like **EAST**) indicates a **"Fast Reporter."** It reaches milestones (like 75%) much earlier on the X-axis than the other precincts.
+    * A **Lower Line** (like **NORTH**) indicates a **"Slow Reporter."** You have to wait much longer for it to reach the same completion rate.
+* **The Vertical Jumps:** Each "step" or vertical jump in the line represents a crime being reported. A large vertical jump at a specific point means many crimes were reported at exactly that duration.
 
 [Go to table of contents.](#TOC)
 
 ________________
 
 
-<a id='part4'></a>
 
-## Deliverable II (option 2)
+<!-- <a id='part4'></a> -->
 
-This link has data from this [website](https://www.mass.gov/lists/massachusetts-state-police-arrest-details), which informs about Massachusetts State Police arrest details.
-```{r}
-linkMass="https://github.com/DACSS-Visual/tabular_bivar_catcat/raw/refs/heads/main/data/MSP%20DFS%20Arrests%2019-20Q1.xlsx"
+<!-- ## Deliverable II (option 2) -->
 
-#see it
-library(rio)
-arrests=rio::import(linkMass,which = 1)
-head(arrests)
-```
+<!-- This link has data from this [website](https://www.mass.gov/lists/massachusetts-state-police-arrest-details), which informs about Massachusetts State Police arrest details. -->
+<!-- ```{r} -->
+<!-- linkMass="https://github.com/DACSS-Visual/tabular_bivar_catcat/raw/refs/heads/main/data/MSP%20DFS%20Arrests%2019-20Q1.xlsx" -->
 
-Use the columns **Arrest Type** and **Age** to make a visual. The excel file has the data in the first sheet; the second one has the _Arrest Type codes_ (5 codes).
+<!-- #see it -->
+<!-- library(rio) -->
+<!-- arrests=rio::import(linkMass,which = 1) -->
+<!-- head(arrests) -->
+<!-- ``` -->
 
-_____
+<!-- Use the columns **Arrest Type** and **Age** to make a visual. The excel file has the data in the first sheet; the second one has the _Arrest Type codes_ (5 codes). -->
 
-[Go to table of contents.](#TOC)
+<!-- _____ -->
+
+<!-- [Go to table of contents.](#TOC) -->
 
 
 
